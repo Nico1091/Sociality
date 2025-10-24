@@ -1,11 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sociality</title>
+    <title>Muro - Sociality</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    
+    <header
+        style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #ccc;">
+        <div id="nombreUsuario"></div>
+        <button id="cerrarSesion">Cerrar Sesión</button>
+    </header>
+
+    <main>
+        <h1>Bienvenido al Muro</h1>
+        <!-- Aquí tu contenido del muro -->
+    </main>
+
+    <script>
+        // Mostrar el nombre del usuario
+        const usuario = JSON.parse(localStorage.getItem("usuarioLogueado"));
+        if (!usuario) {
+            // Si no hay usuario logueado, redirigir al login
+            window.location.href = "index.html";
+        } else {
+            document.getElementById("nombreUsuario").textContent = usuario.Nombre;
+        }
+
+        // Cerrar sesión
+        document.getElementById("cerrarSesion").addEventListener("click", () => {
+            localStorage.removeItem("usuarioLogueado");
+            window.location.href = "index.html";
+        });
+    </script>
 </body>
+
 </html>

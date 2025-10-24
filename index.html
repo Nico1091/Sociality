@@ -42,15 +42,18 @@
           body: JSON.stringify({ Cedula, Nombre, Contrasena })
         });
 
-
         const result = await response.json();
 
         if (response.ok) {
-          // Login exitoso, redirigimos al Muro
+          // Guardamos datos del usuario en localStorage
+          localStorage.setItem("usuarioLogueado", JSON.stringify(result.data));
+
+          // Redirigimos al Muro
           window.location.href = "Muro.html";
         } else {
           alert(result.message);
         }
+
       } catch (error) {
         console.error("Error al iniciar sesión:", error);
         alert("Ocurrió un error al iniciar sesión");
