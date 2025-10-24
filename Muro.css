@@ -1,0 +1,46 @@
+/* Muro.css */
+
+/* Header fijo en la parte superior */
+.muro-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #f5f5f5;
+    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+/* Nombre del usuario a la izquierda */
+.usuario-nombre {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Botón de cerrar sesión */
+.btn-cerrar {
+    padding: 6px 12px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-cerrar:hover {
+    background-color: #ff1a1a;
+}
+
+/* Main con margen superior para no tapar contenido con el header fijo */
+.muro-main {
+    margin-top: 80px;
+    padding: 20px;
+}

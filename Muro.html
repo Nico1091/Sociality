@@ -5,32 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Muro - Sociality</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="Muro.css">
 </head>
 
 <body>
-    <header
-        style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #ccc;">
-        <div id="nombreUsuario"></div>
-        <button id="cerrarSesion">Cerrar Sesión</button>
+    <header class="muro-header">
+        <div id="nombreUsuario" class="usuario-nombre"></div>
+        <button id="cerrarSesion" class="btn-cerrar">Cerrar Sesión</button>
     </header>
 
-    <main>
+    <main class="muro-main">
         <h1>Bienvenido al Muro</h1>
         <!-- Aquí tu contenido del muro -->
     </main>
 
     <script>
-        // Mostrar el nombre del usuario
+        // Obtener usuario desde localStorage
         const usuario = JSON.parse(localStorage.getItem("usuarioLogueado"));
+
         if (!usuario) {
-            // Si no hay usuario logueado, redirigir al login
+            // Redirigir si no hay usuario logueado
             window.location.href = "index.html";
         } else {
             document.getElementById("nombreUsuario").textContent = usuario.Nombre;
         }
 
-        // Cerrar sesión
+        // Función cerrar sesión
         document.getElementById("cerrarSesion").addEventListener("click", () => {
             localStorage.removeItem("usuarioLogueado");
             window.location.href = "index.html";
