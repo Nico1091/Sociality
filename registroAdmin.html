@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+   
+  <meta charset="UTF-8" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADMIN REGISTRO</title>
+   
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div class="container">
+        <h2>Bienvenido</h2>
+        <p>Crea tu cuenta</p>
+
+        <input type="text" placeholder="Nuevo usuario" id="usuario" />
+        <input type="password" placeholder="Nueva contraseña" id="contrasena" />
+
+        <button onclick="registrar()">Crear cuenta</button>
+
+        <p class="link" onclick="window.location.href='index.html'">Volver al inicio</p>
+      </div>
+
+   
+  <script>
+    async function registrar() {
+      const usuario = document.getElementById("usuario").value;
+      const contrasena = document.getElementById("contrasena").value;
+
+      // Validaciones básicas
+      if (!usuario || !contrasena) {
+        alert("Por favor, rellena todos los campos.");
+        return;
+      }
+
+      try {
+        // Intenta conectar al servidor Express
+        const response = await fetch("http://localhost:3000/ADMIN", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ usuario, contrasena }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          alert(result.message);
+          window.location.href = 'index.html';
+        } else {
+          // Muestra el error 400 devuelto por Supabase/Express
+          alert(`Error al registrar: ${result.error || result.message}`);
+        }
+      } catch (error) {
+        // Este es el error que estabas viendo.
+        console.error("Fallo al conectar con el servidor:", error);
+        alert("No se pudo conectar al servidor. Asegúrate de que esté corriendo.");
+      }
+    }
+  </script>
+</body>
+
+</html>

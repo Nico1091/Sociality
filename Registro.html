@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro Sociality</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="container">
+        <h2>Bienvenido</h2>
+        <p>Crea tu cuenta</p>
+
+        <input type="text" placeholder="Cédula" id="Cedula" />
+        <input type="text" placeholder="Nombre" id="Nombre" />
+        <input type="password" placeholder="Contraseña" id="Contrasena" />
+
+        <button onclick="registrar()">Crear cuenta</button>
+
+        <p class="link" onclick="window.location.href='index.html'">Volver al inicio</p>
+    </div>
+
+    <script>
+        async function registrar() {
+            const Cedula = document.getElementById("Cedula").value;
+            const Nombre = document.getElementById("Nombre").value;
+            const Contrasena = document.getElementById("Contrasena").value;
+
+            if (!Cedula || !Nombre || !Contrasena) {
+                alert("Por favor, rellena todos los campos.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://localhost:3000/usuarios", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ Cedula, Nombre, Contrasena })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(result.message);
+                    window.location.href = 'index.html';
+                } else {
+                    alert(`Error al registrar: ${result.error || result.message}`);
+                }
+            } catch (error) {
+                console.error("Fallo al conectar con el servidor:", error);
+                alert("No se pudo conectar al servidor. Asegúrate de que esté corriendo.");
+            }
+        }
+    </script>
+</body>
+</html>
