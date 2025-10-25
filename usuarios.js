@@ -13,7 +13,6 @@ router.post("/", async (req, res) => {
         .select();
 
     if (error) return res.status(400).json({ error: error.message });
-
     res.status(201).json({ message: "✅ Usuario registrado correctamente", data: data[0] });
 });
 

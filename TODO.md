@@ -1,0 +1,4 @@
+- [x] Cambiar redirección en ingresoAdmin.html a "Panel.html"
+- [x] Hacer login case-insensitive en routes/Admin.js
+- [x] Agregar verificación en promover admin para evitar duplicados
+- [x] Agregar verificación en quitar admin para evitar errores

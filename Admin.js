@@ -3,9 +3,18 @@ import { supabase } from "../supabase.js";
 
 const router = express.Router();
 
+/** ------------------------------
+ * ADMINISTRADORES
+ * ------------------------------ */
+
 // POST -> Registrar nuevo administrador
 router.post("/", async (req, res) => {
-    const { usuario, contrasena } = req.body;
+    let { usuario, contrasena } = req.body;
+    if (!usuario || !contrasena)
+        return res.status(400).json({ message: "Faltan usuario o contraseña" });
+
+    usuario = usuario.trim();
+    contrasena = contrasena.trim();
 
     const { data, error } = await supabase
         .from("ADMIN")
@@ -17,21 +26,45 @@ router.post("/", async (req, res) => {
     res.status(201).json({ message: "✅ Usuario Administrador registrado correctamente", data: data[0] });
 });
 
-// PUT -> Actualizar administrador por ID
-router.put("/:id", async (req, res) => {
-    const { id } = req.params;
-    const { usuario, contrasena } = req.body;
+// POST -> Login Admin
+router.post("/admin-login", async (req, res) => {
+  let { usuario, contrasena } = req.body;
+  if (!usuario || !contrasena)
+    return res.status(400).json({ message: "Faltan usuario o contraseña" });
 
+  usuario = usuario.trim();
+  contrasena = contrasena.trim();
+
+  try {
     const { data, error } = await supabase
-        .from("ADMIN")
-        .update({ usuario, contrasena })
-        .eq("id", id)
-        .select();
+      .from("ADMIN")       // <-- uso correcto de mayúsculas
+      .select("*")
+      .ilike("usuario", usuario)
+      .limit(1)
+      .single();
 
+    if (error && error.code !== "PGRST116") 
+      return res.status(400).json({ error: error.message });
+
+    if (!data || data.contrasena.trim() !== contrasena)
+      return res.status(400).json({ message: "Usuario o contraseña incorrectos" });
+
+    return res.json({ message: "✅ Admin validado", data: { usuario: data.usuario, id: data.id } });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar todos los admins
+router.get("/list-admins", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("ADMIN").select("usuario");
     if (error) return res.status(400).json({ error: error.message });
-    if (!data || data.length === 0) return res.status(404).json({ message: `❌ Administrador con ID ${id} no encontrado.` });
-
-    res.json({ message: "✅ Usuario Administrador actualizado correctamente", data: data[0] });
+    return res.json({ data });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

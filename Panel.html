@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel Admin - Sociality</title>
+  <link rel="stylesheet" href="Panel.css" />
+</head>
+<body>
+  <header class="admin-header">
+    <div class="brand">Sociality - Panel Admin</div>
+    <div class="header-right">
+      <span id="adminName"></span>
+      <button id="logoutBtn" class="btn small">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="cards">
+      <div class="card" id="cardUsers"><h3>Usuarios</h3><p id="countUsers">—</p></div>
+      <div class="card" id="cardAdmins"><h3>Admins</h3><p id="countAdmins">—</p></div>
+      <div class="card" id="cardPosts"><h3>Publicaciones</h3><p id="countPosts">—</p></div>
+    </section>
+
+    <section class="panel-section">
+      <div class="panel-col">
+        <h2>Lista de usuarios</h2>
+        <div class="form-inline">
+          <input id="newUserName" placeholder="Nombre usuario">
+          <input id="newUserPass" placeholder="Contraseña">
+          <button id="btnAddUser" class="btn">Agregar usuario</button>
+        </div>
+        <div class="table-wrap">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-col">
+        <h2>Publicaciones</h2>
+        <div class="table-wrap">
+          <table id="postsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Comentario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  // Verificar si hay admin logueado
+  const admin = JSON.parse(localStorage.getItem("adminLogueado"));
+  if (!admin) window.location.href = "ingresoAdmin.html";
+  else document.getElementById("adminName").textContent = admin.usuario || "Admin";
+
+  // Escape HTML para seguridad
+  function escapeHtml(str) {
+    if (!str && str !== 0) return "";
+    return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+
+  // Cargar conteos
+  async function loadCounts() {
+    try {
+      const [usersRes, adminsRes, postsRes] = await Promise.all([
+        fetch("/ADMIN/usuarios"),
+        fetch("/ADMIN/list-admins"),
+        fetch("/ADMIN/publicaciones")
+      ]);
+
+      const usersJson = usersRes.ok ? await usersRes.json() : { data: [] };
+      const adminsJson = adminsRes.ok ? await adminsRes.json() : { data: [] };
+      const postsJson = postsRes.ok ? await postsRes.json() : { data: [] };
+
+      document.getElementById("countUsers").textContent = usersJson.data?.length || 0;
+      document.getElementById("countAdmins").textContent = adminsJson.data?.length || 0;
+      document.getElementById("countPosts").textContent = postsJson.data?.length || 0;
+    } catch (err) { console.error(err); }
+  }
+
+  // Cargar tabla de usuarios
+  async function loadUsers() {
+    try {
+      const res = await fetch("/ADMIN/usuarios");
+      const data = res.ok ? await res.json() : { data: [] };
+      const tbody = document.querySelector("#usersTable tbody");
+      tbody.innerHTML = "";
+
+      data.data.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${u.id}</td>
+          <td>${escapeHtml(u.usuario)}</td>
+          <td>
+            <button class="btn small promote" data-id="${u.id}">Promover</button>
+            <button class="btn small demote" data-id="${u.id}">Quitar admin</button>
+            <button class="btn small danger remove" data-id="${u.id}">Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll(".promote").forEach(b => b.addEventListener("click", async () => {
+        const id = b.dataset.id;
+        if (!confirm("Promover a admin este usuario?")) return;
+        const r = await fetch(`/ADMIN/usuarios/admin/${id}`, { method: "PUT" });
+        const j = await r.json();
+        if (!r.ok) alert(j.error || j.message || "Error");
+        else { alert("Promovido a admin"); loadUsers(); loadCounts(); }
+      }));
+
+      tbody.querySelectorAll(".demote").forEach(b => b.addEventListener("click", async () => {
+        const id = b.dataset.id;
+        if (!confirm("Quitar admin a este usuario?")) return;
+        const r = await fetch(`/ADMIN/usuarios/remove-admin/${id}`, { method: "PUT" });
+        const j = await r.json();
+        if (!r.ok) alert(j.error || j.message || "Error");
+        else { alert("Admin removido"); loadUsers(); loadCounts(); }
+      }));
+
+      tbody.querySelectorAll(".remove").forEach(b => b.addEventListener("click", async () => {
+        const id = b.dataset.id;
+        if (!confirm("Eliminar usuario?")) return;
+        const r = await fetch(`/ADMIN/usuarios/${id}`, { method: "DELETE" });
+        const j = await r.json();
+        if (!r.ok) alert(j.error || j.message || "Error");
+        else { alert("Usuario eliminado"); loadUsers(); loadCounts(); }
+      }));
+
+    } catch (err) { console.error(err); }
+  }
+
+  // Cargar publicaciones
+  async function loadPosts() {
+    try {
+      const res = await fetch("/ADMIN/publicaciones");
+      const data = res.ok ? await res.json() : { data: [] };
+      const tbody = document.querySelector("#postsTable tbody");
+      tbody.innerHTML = "";
+
+      data.data.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.id}</td>
+          <td>${escapeHtml(p.usuario)}</td>
+          <td>${escapeHtml(p.comentario)}</td>
+          <td>
+            <button class="btn small danger removePost" data-id="${p.id}">Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll(".removePost").forEach(b => b.addEventListener("click", async () => {
+        const id = b.dataset.id;
+        if (!confirm("Eliminar publicación?")) return;
+        const r = await fetch(`/ADMIN/publicaciones/${id}`, { method: "DELETE" });
+        const j = await r.json();
+        if (!r.ok) alert(j.error || j.message || "Error");
+        else { alert("Publicación eliminada"); loadPosts(); loadCounts(); }
+      }));
+
+    } catch (err) { console.error(err); }
+  }
+
+  // Agregar usuario
+  document.getElementById("btnAddUser").addEventListener("click", async () => {
+    const u = document.getElementById("newUserName").value.trim();
+    const p = document.getElementById("newUserPass").value.trim();
+    if (!u || !p) return alert("Completa usuario y contraseña");
+
+    try {
+      const r = await fetch("/ADMIN/usuarios", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ usuario: u, contrasena: p }) 
+      });
+      const j = await r.json();
+      if (!r.ok) alert(j.error || j.message || "Error");
+      else { 
+        alert("Usuario creado"); 
+        document.getElementById("newUserName").value=""; 
+        document.getElementById("newUserPass").value=""; 
+        loadUsers(); 
+        loadCounts(); 
+      }
+    } catch (err) { console.error(err); }
+  });
+
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("adminLogueado");
+    window.location.href = "ingresoAdmin.html";
+  });
+
+  // Init
+  async function init() {
+    await loadCounts();
+    await loadUsers();
+    await loadPosts();
+  }
+  init();
+  </script>
+</body>
+</html>
