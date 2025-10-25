@@ -12,16 +12,19 @@
   <div class="container">
     <h2>Iniciar Sesión</h2>
 
-    <!-- Inputs para Cédula, Nombre y Contraseña -->
     <input type="text" placeholder="Cédula" id="cedula" />
     <input type="text" placeholder="Nombre" id="nombre" />
     <input type="password" placeholder="Contraseña" id="contrasena" />
 
     <button onclick="login()">Ingresar</button>
-
+        <button id="btnPanelAdmin" style="margin-top: 10px; background-color: #ff4d4d; color: white; font-weight: bold; padding: 8px 12px; cursor: pointer;">
+      Panel de Administración
+    </button>
     <p class="link" onclick="window.location.href='registro.html'">Registrar Usuario</p>
     <p class="link" onclick="window.location.href='registroAdmin.html'">Registrar Administrador</p>
-    <p class="link">He olvidado mi contraseña</p>
+    
+    <!-- Botón para ingreso a admin -->
+
   </div>
 
   <script>
@@ -42,20 +45,25 @@
           body: JSON.stringify({ Cedula, Nombre, Contrasena })
         });
 
-
         const result = await response.json();
 
         if (response.ok) {
-          // Login exitoso, redirigimos al Muro
+          localStorage.setItem("usuarioLogueado", JSON.stringify(result.data));
           window.location.href = "Muro.html";
         } else {
           alert(result.message);
         }
+
       } catch (error) {
         console.error("Error al iniciar sesión:", error);
         alert("Ocurrió un error al iniciar sesión");
       }
     }
+
+    // Redirigir a ingresoAdmin.html en vez de Panel.html
+    document.getElementById("btnPanelAdmin").addEventListener("click", () => {
+      window.location.href = "ingresoAdmin.html";
+    });
   </script>
 </body>
 

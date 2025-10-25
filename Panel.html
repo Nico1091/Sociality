@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Panel Admin - Sociality</title>
+  <link rel="stylesheet" href="Panel.css" />
+</head>
+<body>
+  <header class="admin-header">
+    <div class="brand">Sociality - Panel Admin</div>
+    <div class="header-right">
+      <span id="adminName"></span>
+      <button id="logoutBtn" class="btn small">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="cards">
+      <div class="card" id="cardUsers"><h3>Usuarios</h3><p id="countUsers">—</p></div>
+      <div class="card" id="cardAdmins"><h3>Admins</h3><p id="countAdmins">—</p></div>
+      <div class="card" id="cardPosts"><h3>Publicaciones</h3><p id="countPosts">—</p></div>
+    </section>
+
+    <section class="panel-section">
+      <!-- PANEL DE USUARIOS -->
+      <div class="panel-col">
+        <h2>Lista de usuarios</h2>
+        <div class="form-inline">
+          <input id="newUserCedula" placeholder="Cédula" type="number">
+          <input id="newUserName" placeholder="Nombre usuario">
+          <input id="newUserPass" placeholder="Contraseña" type="password">
+          <button id="btnAddUser" class="btn">Agregar usuario</button>
+        </div>
+        <div class="table-wrap">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>Cédula</th>
+                <th>Nombre</th>
+                <th>Contraseña</th>
+                <th>Fecha y Lugar</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANEL DE PUBLICACIONES -->
+      <div class="panel-col">
+        <h2>Publicaciones</h2>
+        <div class="table-wrap">
+          <table id="postsTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Comentario</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // BASE URL del API
+    const API_BASE = "http://localhost:3000/ADMIN";
+
+    // Verificar admin logueado
+    const admin = JSON.parse(localStorage.getItem("adminLogueado"));
+    if (!admin) window.location.href = "ingresoAdmin.html";
+    else document.getElementById("adminName").textContent = admin.usuario || "Admin";
+
+    // Escapar texto para HTML
+    function escapeHtml(str) {
+      if (!str && str !== 0) return "";
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Cargar conteos
+    async function loadCounts() {
+      try {
+        const [usersRes, adminsRes, postsRes] = await Promise.all([
+          fetch(`${API_BASE}/usuarios`),
+          fetch(`${API_BASE}/list-admins`),
+          fetch(`${API_BASE}/publicaciones`)
+        ]);
+
+        const usersJson = usersRes.ok ? await usersRes.json() : { data: [] };
+        const adminsJson = adminsRes.ok ? await adminsRes.json() : { data: [] };
+        const postsJson = postsRes.ok ? await postsRes.json() : { data: [] };
+
+        document.getElementById("countUsers").textContent = usersJson.data?.length || 0;
+        document.getElementById("countAdmins").textContent = adminsJson.data?.length || 0;
+        document.getElementById("countPosts").textContent = postsJson.data?.length || 0;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Cargar usuarios
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API_BASE}/usuarios`);
+        const data = res.ok ? await res.json() : { data: [] };
+        const tbody = document.querySelector("#usersTable tbody");
+        tbody.innerHTML = "";
+
+        data.data.forEach(u => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(u.Cedula)}</td>
+            <td>${escapeHtml(u.Nombre)}</td>
+            <td>${escapeHtml(u.Contrasena)}</td>
+            <td>${u.fecha_lugar || ''}</td>
+            <td>
+              <button class="btn small promote" data-cedula="${u.Cedula}">Promover</button>
+              <button class="btn small demote" data-cedula="${u.Cedula}">Quitar admin</button>
+              <button class="btn small danger remove" data-cedula="${u.Cedula}">Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Promover admin
+        tbody.querySelectorAll(".promote").forEach(b => b.addEventListener("click", async () => {
+          const cedula = b.dataset.cedula;
+          if (!confirm("Promover a admin este usuario?")) return;
+          const r = await fetch(`${API_BASE}/usuarios/admin/${cedula}`, { method: "PUT" });
+          const j = await r.json();
+          if (!r.ok) alert(j.error || j.message || "Error");
+          else { alert("Promovido a admin"); loadUsers(); loadCounts(); }
+        }));
+
+        // Quitar admin
+        tbody.querySelectorAll(".demote").forEach(b => b.addEventListener("click", async () => {
+          const cedula = b.dataset.cedula;
+          if (!confirm("Quitar admin a este usuario?")) return;
+          const r = await fetch(`${API_BASE}/usuarios/remove-admin/${cedula}`, { method: "PUT" });
+          const j = await r.json();
+          if (!r.ok) alert(j.error || j.message || "Error");
+          else { alert("Admin removido"); loadUsers(); loadCounts(); }
+        }));
+
+        // Eliminar usuario
+        tbody.querySelectorAll(".remove").forEach(b => b.addEventListener("click", async () => {
+          const cedula = b.dataset.cedula;
+          if (!confirm("Eliminar usuario?")) return;
+          const r = await fetch(`${API_BASE}/usuarios/${cedula}`, { method: "DELETE" });
+          const j = await r.json();
+          if (!r.ok) alert(j.error || j.message || "Error");
+          else { alert("Usuario eliminado"); loadUsers(); loadCounts(); }
+        }));
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Cargar publicaciones
+    async function loadPosts() {
+      try {
+        const res = await fetch(`${API_BASE}/publicaciones`);
+        const data = res.ok ? await res.json() : { data: [] };
+        const tbody = document.querySelector("#postsTable tbody");
+        tbody.innerHTML = "";
+
+        data.data.forEach(p => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${p.id}</td>
+            <td>${escapeHtml(p.usuario)}</td>
+            <td>${escapeHtml(p.comentario)}</td>
+            <td>
+              <button class="btn small danger removePost" data-id="${p.id}">Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll(".removePost").forEach(b => b.addEventListener("click", async () => {
+          const id = b.dataset.id;
+          if (!confirm("Eliminar publicación?")) return;
+          const r = await fetch(`${API_BASE}/publicaciones/${id}`, { method: "DELETE" });
+          const j = await r.json();
+          if (!r.ok) alert(j.error || j.message || "Error");
+          else { alert("Publicación eliminada"); loadPosts(); loadCounts(); }
+        }));
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Agregar usuario
+    document.getElementById("btnAddUser").addEventListener("click", async () => {
+      const Cedula = document.getElementById("newUserCedula").value.trim();
+      const Nombre = document.getElementById("newUserName").value.trim();
+      const Contrasena = document.getElementById("newUserPass").value.trim();
+
+      if (!Cedula || !Nombre || !Contrasena) return alert("Completa todos los campos");
+
+      try {
+        const r = await fetch(`${API_BASE}/usuarios`, { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" }, 
+          body: JSON.stringify({ Cedula, Nombre, Contrasena }) 
+        });
+        const j = await r.json();
+        if (!r.ok) alert(j.error || j.message || "Error");
+        else { 
+          alert("Usuario creado"); 
+          document.getElementById("newUserCedula").value="";
+          document.getElementById("newUserName").value=""; 
+          document.getElementById("newUserPass").value=""; 
+          loadUsers(); 
+          loadCounts(); 
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("adminLogueado");
+      window.location.href = "ingresoAdmin.html";
+    });
+
+    // Inicializar panel
+    async function init() {
+      await loadCounts();
+      await loadUsers();
+      await loadPosts();
+    }
+    init();
+  </script>
+</body>
+</html>

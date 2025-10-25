@@ -1,11 +1,378 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sociality</title>
-</head>
-<body>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muro - Sociality</title>
+  <link rel="stylesheet" href="Muro.css" />
+  <style>
+   
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-backdrop.show { display: flex; }
+
+    .modal-card {
+      width: 92%;
+      max-width: 540px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      transform-origin: center;
+      animation: pop .16s ease-out;
+    }
+
+    @keyframes pop {
+      from { transform: translateY(-8px) scale(.99); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .modal-title { font-weight:700; color:#0a66c2; }
+    .modal-close { background:transparent; border:none; font-size:1.1rem; cursor:pointer; }
+
+    .modal-body { margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+    .modal-body input, .modal-body textarea, .modal-body select {
+      width:100%;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid #e6eefc;
+      outline:none;
+      font-size:0.95rem;
+    }
+    .modal-footer {
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+    }
+    .btn-secondary {
+      background:#f3f6fb;
+      color:#0a66c2;
+      border:1px solid #dbe9ff;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .btn-primary {
+      background:#0a66c2;
+      color:white;
+      border:none;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
+    /* small */
+    @media (max-width:480px){
+      .modal-card{ padding:14px; }
+      .modal-body input, .modal-body textarea { font-size:0.9rem; }
+    }
+
     
+    .card-actions { display:flex; gap:8px; align-items:center; }
+    .action-btn {
+      background:transparent; border:none; cursor:pointer; color:#0a66c2; font-weight:700;
+      padding:6px; border-radius:6px;
+    }
+    .action-btn.danger { color:#d32f2f; }
+  </style>
+</head>
+
+<body>
+  <header class="muro-header">
+    <div id="nombreUsuario" class="usuario-nombre"></div>
+    <button id="cerrarSesion" class="btn-cerrar">Cerrar Sesión</button>
+  </header>
+
+  <main class="muro-main">
+    <h1>Bienvenido al Muro</h1>
+
+    <div class="form-publicacion">
+      <textarea id="comentarioPub" placeholder="¿Qué estás pensando?" rows="3"></textarea>
+      <input type="text" id="urlPublicacion" placeholder="URL de la imagen (opcional)" />
+      <select id="visibilidadPub">
+        <option value="Publica">Pública</option>
+        <option value="Privada">Privada</option>
+      </select>
+      <button id="btnPublicar">Publicar</button>
+    </div>
+
+    <div id="publicacionesContainer" class="publicaciones-container"></div>
+  </main>
+
+  <!-- Modal Edit -->
+  <div id="editModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Editar publicación</div>
+        <button id="closeModal" class="modal-close" title="Cerrar">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <input id="editUrl" type="text" placeholder="URL de la imagen" />
+        <textarea id="editComentario" rows="4" placeholder="Edita tu comentario"></textarea>
+        <select id="editVisibilidad">
+          <option value="Publica">Pública</option>
+          <option value="Privada">Privada</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button id="cancelEdit" class="btn-secondary">Cancelar</button>
+        <button id="saveEdit" class="btn-primary">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Usuario logueado desde index.html (debe contener Nombre y Cedula)
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogueado"));
+
+    if (!usuario) {
+      window.location.href = "index.html";
+    } else {
+      document.getElementById("nombreUsuario").textContent = usuario.Nombre || "Usuario";
+    }
+
+    document.getElementById("cerrarSesion").addEventListener("click", () => {
+      localStorage.removeItem("usuarioLogueado");
+      window.location.href = "index.html";
+    });
+
+    // Modal references
+    const editModal = document.getElementById('editModal');
+    const editUrl = document.getElementById('editUrl');
+    const editComentario = document.getElementById('editComentario');
+    const editVisibilidad = document.getElementById('editVisibilidad');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelEditBtn = document.getElementById('cancelEdit');
+    const saveEditBtn = document.getElementById('saveEdit');
+
+    let editingId = null; // id currently editing
+
+    function openModal() {
+      editModal.classList.add('show');
+      editModal.setAttribute('aria-hidden', 'false');
+    }
+    function closeModal() {
+      editModal.classList.remove('show');
+      editModal.setAttribute('aria-hidden', 'true');
+      editingId = null;
+      editUrl.value = '';
+      editComentario.value = '';
+      editVisibilidad.value = 'Publica';
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelEditBtn.addEventListener('click', closeModal);
+   
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeModal();
+    });
+
+    
+    async function cargarPublicaciones() {
+      try {
+        const res = await fetch(`http://localhost:3000/publicaciones?cedula=${encodeURIComponent(usuario.Cedula)}`);
+        const json = await res.json();
+        if (!res.ok) {
+          console.error("GET publicaciones error:", json);
+          return;
+        }
+
+        const container = document.getElementById("publicacionesContainer");
+        container.innerHTML = "";
+
+        json.data.forEach(pub => {
+          const div = document.createElement("div");
+          div.className = "publicacion";
+
+          const isOwner = String(pub.cedula) === String(usuario.Cedula);
+
+          div.innerHTML = `
+            <div class="pub-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <div><strong>${escapeHtml(pub.usuario || "Anonimo")}</strong> - ${pub.fecha_publicacion ? new Date(pub.fecha_publicacion).toLocaleString() : ''}</div>
+              <div class="card-actions">
+                ${isOwner ? `<button class="action-btn edit-btn" data-id="${pub.id}">✏️ Editar</button>` : ''}
+                ${isOwner ? `<button class="action-btn danger delete-btn" data-id="${pub.id}">🗑️ Eliminar</button>` : ''}
+              </div>
+            </div>
+            <div class="pub-comentario">${escapeHtml(pub.comentario_pub)}</div>
+            ${pub.url_publicacion ? `<img src="${escapeHtml(pub.url_publicacion)}" class="pub-imagen" />` : ""}
+            <div class="pub-footer">
+              <span>Likes: <span class="like-count">${pub.likes}</span></span>
+              ${pub.fecha_edicion ? `<span>Editado: ${new Date(pub.fecha_edicion).toLocaleString()}</span>` : ""}
+              <button class="btn-like" data-id="${pub.id}">👍 Like</button>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+
+        // listeners: like
+        document.querySelectorAll(".btn-like").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            try {
+              const r = await fetch(`http://localhost:3000/publicaciones/like/${id}`, { method: "PUT" });
+              const j = await r.json();
+              if (!r.ok) {
+                console.error("PUT like error:", j);
+                return;
+              }
+              const parent = btn.closest(".pub-footer");
+              parent.querySelector(".like-count").textContent = j.data.likes;
+            } catch (err) {
+              console.error("Error like:", err);
+            }
+          });
+        });
+
+ 
+        document.querySelectorAll(".edit-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+
+            try {
+              const r = await fetch(`http://localhost:3000/publicaciones?cedula=${encodeURIComponent(usuario.Cedula)}`);
+              const body = await r.json();
+              const pub = body.data.find(p => String(p.id) === String(id));
+              if (!pub) {
+                alert("No se encontró la publicación");
+                return;
+              }
+
+              editingId = id;
+              editUrl.value = pub.url_publicacion || "";
+              editComentario.value = pub.comentario_pub || "";
+              editVisibilidad.value = pub.visibilidad || "Publica";
+              openModal();
+            } catch (err) {
+              console.error("Error al abrir editor:", err);
+            }
+          });
+        });
+
+       
+        document.querySelectorAll(".delete-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            if (!confirm("¿Estás seguro que deseas eliminar esta publicación?")) return;
+            try {
+              const r = await fetch(`http://localhost:3000/publicaciones/${id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ Cedula: usuario.Cedula })
+              });
+              const j = await r.json();
+              if (!r.ok) {
+                alert(j.message || "Error al eliminar");
+                console.error("DELETE error:", j);
+                return;
+              }
+           
+              cargarPublicaciones();
+            } catch (err) {
+              console.error("Error eliminar:", err);
+            }
+          });
+        });
+
+      } catch (err) {
+        console.error("Error cargarPublicaciones:", err);
+      }
+    }
+
+ 
+    saveEditBtn.addEventListener('click', async () => {
+      if (!editingId) return;
+      const payload = {
+        Cedula: usuario.Cedula,
+        Url_Publicacion: editUrl.value.trim(),
+        Comentario_Pub: editComentario.value.trim(),
+        Visibilidad: editVisibilidad.value
+      };
+
+      try {
+        const r = await fetch(`http://localhost:3000/publicaciones/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const j = await r.json();
+        if (!r.ok) {
+          alert(j.message || "Error al guardar cambios");
+          console.error("PUT edit error:", j);
+          return;
+        }
+
+        closeModal();
+        cargarPublicaciones();
+      } catch (err) {
+        console.error("Error guardar edición:", err);
+        alert("Error al guardar cambios");
+      }
+    });
+
+    // Crear nueva publicación
+    document.getElementById("btnPublicar").addEventListener("click", async () => {
+      const comentarioPub = document.getElementById("comentarioPub").value.trim();
+      const urlPublicacion = document.getElementById("urlPublicacion").value.trim();
+      const visibilidad = document.getElementById("visibilidadPub").value;
+
+      if (!comentarioPub) {
+        alert("Escribe un comentario antes de publicar");
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:3000/publicaciones", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            usuario: usuario.Nombre || null,
+            Cedula: usuario.Cedula,
+            comentarioPub,
+            urlPublicacion,
+            visibilidad
+          })
+        });
+
+        const body = await res.json();
+        if (!res.ok) {
+          alert(body.message || "Error al publicar");
+          console.error("POST publicaciones error:", body);
+          return;
+        }
+
+        document.getElementById("comentarioPub").value = "";
+        document.getElementById("urlPublicacion").value = "";
+        document.getElementById("visibilidadPub").value = "Publica";
+        cargarPublicaciones();
+      } catch (err) {
+        console.error("Error publicar:", err);
+        alert("Error al crear publicación");
+      }
+    });
+
+   
+    function escapeHtml(str) {
+      if (!str && str !== 0) return "";
+      return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+
+    cargarPublicaciones();
+  </script>
 </body>
 </html>

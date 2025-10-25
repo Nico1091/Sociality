@@ -1,0 +1,46 @@
+/* Panel.css - estilo dashboard */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+
+body { background: #f4f6fb; color: #222; }
+
+.admin-header {
+  background: linear-gradient(90deg,#0a66c2,#1765b8);
+  color: white;
+  padding: 14px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand { font-weight: 700; font-size: 1.1rem; }
+.header-right { display:flex; gap:12px; align-items:center; }
+.btn { background:#1976d2; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:700; }
+.btn.small { padding:6px 8px; font-size:0.85rem; }
+.btn.danger, .btn.small.danger { background:#d32f2f; }
+
+.admin-main { max-width:1200px; margin:24px auto; padding: 16px; }
+
+.cards { display:flex; gap:14px; margin-bottom:18px; }
+.card { flex:1; background:white; padding:16px; border-radius:10px; box-shadow:0 6px 18px rgba(15,30,60,0.06); }
+.card h3 { color:#1976d2; margin-bottom:6px; }
+
+.panel-section { display:flex; gap:20px; align-items:flex-start; }
+.panel-col { flex:1; background:transparent; }
+
+.table-wrap { background:white; border-radius:10px; box-shadow:0 6px 18px rgba(15,30,60,0.04); padding:12px; margin-top:12px; }
+table { width:100%; border-collapse:collapse; font-size:0.95rem; }
+thead th { text-align:left; padding:10px; color:#4b5563; font-weight:700; border-bottom:1px solid #eef2f7; }
+tbody td { padding:10px; border-bottom:1px solid #f1f5f9; color:#222; }
+
+.form-inline { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+.form-inline input { padding:8px 10px; border-radius:8px; border:1px solid #e6eefc; flex:1; }
+.form-inline button { padding:8px 10px; border-radius:8px; border:none; background:#0a66c2; color:white; cursor:pointer; font-weight:700; }
+
+.btn.small.promote { background:#059669; color:white; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; }
+.btn.small.demote { background:#f59e0b; color:white; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; }
+.btn.small.remove { background:#ef4444; color:white; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; }
+
+@media (max-width:900px) {
+  .panel-section { flex-direction:column; }
+  .cards { flex-direction:column; }
+}
